@@ -30,7 +30,7 @@ def lloyd_max(x, xq0, max_iter = 5):
         iteration += 1
 
 def lloyd_max_bin(x, xq0, max_iter = 5):
-    """Simplified lloyd-max for low, high data."""
+    """Simplified Lloyd-Max for low, high data (two-levels)."""
     assert len(xq0)==2
     xq = xq0 + 0
 
@@ -63,12 +63,15 @@ def lloyd_max_bin(x, xq0, max_iter = 5):
     
 
 
-# Lookup table
+
 def _calc_uint8_squares():
+    """Lookup table of centered squared np.uint8 stored as np.uint16."""
     s = np.empty(256, dtype=np.uint16)
     for i in range(256):
         s[i] = (127 - i) * (127 - i)
     return s
+
+# Lookup table
 _uint8_squares = _calc_uint8_squares()
 
 def square_uint8(d):
@@ -78,6 +81,7 @@ def square_uint8(d):
 
 
 def pulse_gap_widths(b):
+    """From a sequnce of levels 0 and 1 levels return widths of constant levels."""
     #ispulse = np.concatenate(([b[0]], np.equal(b, 1).view(np.int8), [0 if b[-1]==1 else 1]))
     ispulse = np.empty(len(b) + 2, dtype=np.int8)
     ispulse[0] = b[0]
@@ -107,7 +111,7 @@ def split_on_gaps(widths, start_value, threshold):
     return pulsess, gapss
 
 def split_packet(pulses, gaps, reset_limit):
-    """Simplified split_on_gaps, assuming starting on pulse and ending on gap"""
+    """Simplified split_on_gaps, assuming starting on pulse and ending on gap."""
     where_reset = np.where(gaps>reset_limit)[0]
     pulsess = np.split(pulses,where_reset+1)
     gapss = np.split(gaps,where_reset+1)
@@ -118,6 +122,7 @@ def split_packet(pulses, gaps, reset_limit):
 
 # http://stackoverflow.com/questions/17479944/partitioning-an-float-array-into-similar-segments-clustering
 def cluster_analyze(L, tolerance, max_clusters = 10):
+    """Simple 1D cluster analysis."""
     f = int(tolerance * 100) + 100 # 0.2 -> 120
     Ls = np.sort(L) # Expensive
     clusters = [0]
@@ -142,7 +147,7 @@ def cluster_analyze(L, tolerance, max_clusters = 10):
 
 
 def cluster_median(c):
-    # Find median on the sorted sequence c
+    """Find median off sorted sequence c."""
     Nc = len(c)
     if Nc % 2 == 0:
         m = Nc // 2
@@ -166,7 +171,7 @@ class RFSignal:
         # Numerator (b) and denominator (a) polynomials of the IIR filter
         #b, a = scipy.signal.butter(1, 0.05) # Digital filter
         b = [ 0.07295966, 0.07295966]
-        a = [ 1., -0.85408069] # Notice the minus! Needed in fixed point stuff
+        a = [ 1., -0.85408069] # Notice the minus! Needed in fixed point lowpass stuff
         self.bi,self.ai = crtlsdrutils.lowpass_params(b,a)
 
         #
@@ -189,7 +194,7 @@ class RFSignal:
     def _quantize(self):
         # TODO! This is slow!
         #xq0 = np.array([np.min(self.signal), np.max(self.signal)]) # How fast is this? Many reductions!
-        xq0 = np.array([0, np.max(self.signal)], dtype = np.uint16) # Faster and robust
+        xq0 = np.array([0, np.max(self.signal)], dtype = np.uint16) # Faster and more robust
 
         #self.levels, self.level_index = lloyd_max_bin(self.signal, xq0=xq0, max_iter=1)
         self.levels, self.level_index = crtlsdrutils.lloyd_max_bin(self.signal, xq0=xq0, max_iter=1)
@@ -273,14 +278,14 @@ class RFSignal:
 
 
 def bytes2str(bs):
-    """Convert iterable of bytes to hex integer string for printing"""
+    """Convert iterable of bytes to hex integer string for printing."""
     ret = ""
     for x in bs:
         ret += "{:02x} ".format(x)
     return ret[:-1]
 
 def boolbit2str(boolbit):
-    """Convert boolean array to bit string for printing"""
+    """Convert boolean array to bit string for printing."""
     ret = ""
     zero = "0"
     one = "1"
@@ -424,39 +429,41 @@ class ProoveDemodulate(Demodulate):
         return self.data
 
 
-class OregonDemodulate(Demodulate):
-    def __init__(self):
-        self.reset_limit = 2400
-        self.short_limit = 130
+# class OregonDemodulate(Demodulate):
+#     def __init__(self):
+#         self.reset_limit = 2400
+#         self.short_limit = 130
 
-    def __call__(self, rf):
-        pulsess, gapss = self._split_packet(rf)
+#     def __call__(self, rf):
+#         pulsess, gapss = self._split_packet(rf)
 
-        self.boolbits = []
-        for pulses,gaps in zip(pulsess, gapss):
-            if len(pulses)>0:
-                # Some demodulation! Converting some series of pulses and gaps to raw bytes
-                boolbit = (pulses<self.short_limit)
-                boolbit2 = (gaps<self.short_limit)
-                print("Pulse short", boolbit)
-                print("Gaps short", boolbit2)
-                try:
-                    boolbit = manchester(boolbit)
-                    self.boolbits.append(boolbit)
-                except ValueError:
-                    continue
+#         self.boolbits = []
+#         for pulses,gaps in zip(pulsess, gapss):
+#             if len(pulses)>0:
+#                 # Some demodulation! Converting some series of pulses and gaps to raw bytes
+#                 boolbit = (pulses<self.short_limit)
+#                 boolbit2 = (gaps<self.short_limit)
+#                 print("Pulse short", boolbit)
+#                 print("Gaps short", boolbit2)
+#                 try:
+#                     boolbit = manchester(boolbit)
+#                     self.boolbits.append(boolbit)
+#                 except ValueError:
+#                     continue
 
-        self.bytess = [pack_bytes(b) for b in self.boolbits]
+#         self.bytess = [pack_bytes(b) for b in self.boolbits]
         
-        print(self.boolbits)
+#         print(self.boolbits)
         
-        #return ldata
+#         #return ldata
 
 
 
 
 if __name__ == "__main__":
 
+    import matplotlib.pylab as plt
+    
     N = 100
 
     x = np.zeros(N)
@@ -477,12 +484,12 @@ if __name__ == "__main__":
     #xq0 = None
     max_iter = 10
 
-    xq, b = lloyd_max(x,2, xq0=xq0, max_iter=max_iter)
+    xq, b = lloyd_max_bin(x,xq0=xq0, max_iter=max_iter)
 
-    print('Result: levels = ', xq)
-    print('Result: bits = ', b)
+    print("Result: levels = ", xq)
+    print("Result: bits = ", b)
 
-    plt.figure('result')
+    plt.figure("result")
     plt.plot(x)
-    plt.plot(xq[b], 'o')
+    plt.plot(xq[b], "o")
     plt.show()
