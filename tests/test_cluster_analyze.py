@@ -1,5 +1,5 @@
 import numpy as np
-from rtlsdrutils import cluster_analyze
+from rtl433 import cluster_analyze
 
 
 tolerance = 0.2

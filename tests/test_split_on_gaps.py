@@ -1,6 +1,6 @@
 import numpy as np
 
-from rtlsdrutils import split_on_gaps
+from rtl433 import split_on_gaps
 
 reset_limit = 100
 

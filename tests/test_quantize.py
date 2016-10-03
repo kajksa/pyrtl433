@@ -1,5 +1,5 @@
 import numpy as np
-from rtlsdrutils import lloyd_max, lloyd_max_bin
+from rtl433 import lloyd_max, lloyd_max_bin
 
 N = 100
 pulse_value = 17

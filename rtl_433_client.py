@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 from rtlsdr import RtlSdr, RtlSdrTcpClient
 
-from rtlsdrutils import RFSignal, ChuangoDemodulate, ProoveDemodulate
+from rtl433 import RFSignal, ChuangoDemodulate, ProoveDemodulate
 
 sample_rate = 250000
 num_samples = 4*256*256*2

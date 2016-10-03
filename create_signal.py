@@ -6,7 +6,7 @@ import numpy as np
 import scipy.signal
 
 
-from rtlsdrutils import RFSignal, cluster_median
+from rtl433 import RFSignal, cluster_median
 
 filename = sys.argv[1]
 fileoutname = sys.argv[2]

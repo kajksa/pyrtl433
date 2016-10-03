@@ -7,7 +7,7 @@ import time
 
 import numpy as np
 
-from rtlsdrutils import RFSignal, ChuangoDemodulate, ProoveDemodulate, OregonDemodulate
+from rtl433 import RFSignal, ChuangoDemodulate, ProoveDemodulate #, OregonDemodulate
 
 
 

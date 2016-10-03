@@ -2,7 +2,7 @@ import json
 
 import numpy as np
 
-import crtlsdrutils
+from . import crtl433
 
 # http://stackoverflow.com/questions/17479944/partitioning-an-float-array-into-similar-segments-clustering
 # http://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-450-principles-of-digital-communications-i-fall-2006/lecture-notes/book_3.pdf
@@ -172,7 +172,7 @@ class RFSignal:
         #b, a = scipy.signal.butter(1, 0.05) # Digital filter
         b = [ 0.07295966, 0.07295966]
         a = [ 1., -0.85408069] # Notice the minus! Needed in fixed point lowpass stuff
-        self.bi,self.ai = crtlsdrutils.lowpass_params(b,a)
+        self.bi,self.ai = crtl433.lowpass_params(b,a)
 
         #
         # Pre allocate
@@ -185,10 +185,10 @@ class RFSignal:
 
 
     def _square(self):
-        crtlsdrutils.square_uint8(self.data, self.squared)
+        crtl433.square_uint8(self.data, self.squared)
 
     def _lowpass(self):
-        crtlsdrutils.lowpass_uint16(self.bi, self.ai, self.squared, self.signal, state=np.array([self.squared[0], self.squared[0]]))
+        crtl433.lowpass_uint16(self.bi, self.ai, self.squared, self.signal, state=np.array([self.squared[0], self.squared[0]]))
                         
 
     def _quantize(self):
@@ -197,13 +197,13 @@ class RFSignal:
         xq0 = np.array([0, np.max(self.signal)], dtype = np.uint16) # Faster and more robust
 
         #self.levels, self.level_index = lloyd_max_bin(self.signal, xq0=xq0, max_iter=1)
-        self.levels, self.level_index = crtlsdrutils.lloyd_max_bin(self.signal, xq0=xq0, max_iter=1)
+        self.levels, self.level_index = crtl433.lloyd_max_bin(self.signal, xq0=xq0, max_iter=1)
         self.start_low = True if self.level_index[0]==0 else False
         self.end_low = True if self.level_index[-1]==0 else False
 
     def _pulses_gaps(self):
         # Find widths of gaps and pulse
-        self.widths = crtlsdrutils.pulse_gap_widths(self.level_index)
+        self.widths = crtl433.pulse_gap_widths(self.level_index)
         
         # Always start on a pulse and end on a gap
         if self.start_low:

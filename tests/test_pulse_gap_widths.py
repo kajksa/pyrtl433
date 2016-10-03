@@ -1,5 +1,5 @@
 import numpy as np
-from rtlsdrutils import pulse_gap_widths
+from rtl433 import pulse_gap_widths
 
 def test0():
     d = np.array(5*[0] + 5*[1] + 1*[0] + 1*[1])
