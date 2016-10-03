@@ -2,14 +2,14 @@ import sys
 import time
 import datetime
 import argparse
+import signal
 
 import numpy as np
+
 from rtlsdr import RtlSdr
 
 from rtl433 import RFSignal, ChuangoDemodulate, ProoveDemodulate
 
-
-import signal
 
 
 def signal_handler(signal, frame):
