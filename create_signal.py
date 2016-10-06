@@ -15,9 +15,10 @@ print("Loading file {}".format(filename))
 
 d = np.fromfile(filename, dtype=np.uint8)
 
-num_samples = len(d)//2
+num_samples = len(d)
 
-print("Loaded {} samples".format(num_samples))
+sample_rate = 250000 # Hardcoded
+print("Loaded {} samples ({:2f} s @ {} Hz)".format(num_samples, num_samples/2/sample_rate, sample_rate))
 
 rf = RFSignal(num_samples)
 

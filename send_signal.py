@@ -8,7 +8,7 @@ import pigpio
 gpio = 17
 
 # pigpio waves are send in microseconds
-sample_rate = 250000 
+sample_rate = 250000 # Hardcoded
 def samples_microsecs(samples, sample_rate):
     return int(np.round(1000000/sample_rate))
 scale = samples_microsecs(1,sample_rate)

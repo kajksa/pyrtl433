@@ -47,7 +47,6 @@ class SignalProcess(RFSignal):
         self.process(samples)
         if self.analyze_signal:
             self.analyze()
-
         #
         # PULSE DETECT ON QUANTIZED SIGNAL
         #
@@ -111,17 +110,21 @@ if args.r:
     d = np.fromfile(args.r, dtype=np.uint8)
 
     start = args.sample_start
-    end = len(d)//2
+    assert start % 2 == 0
+    end = len(d)
+    assert end %2 == 0
+
     if args.samples:
+        assert args.samples % 2 == 0
         end = start + args.samples
 
-    if 2*end>len(d):
-        end = len(d)//2
+    if end>len(d):
+        end = len(d)
 
     num_samples = end - start
-
-    d = d[2*start:2*end]
-    print("Loaded {} samples ({:2f} s @ {} Hz)".format(num_samples, num_samples/sample_rate, sample_rate))
+    d = d[start:end]
+    
+    print("Loaded {} samples ({:2f} s @ {} Hz)".format(num_samples, num_samples/2/sample_rate, sample_rate))
 
     sp.initialize(num_samples)
     sp.run(d)
@@ -129,18 +132,14 @@ if args.r:
     if args.plot or args.saveplot:
         plt.switch_backend('Qt4Agg')
         plt.figure("data")
-        x = np.arange(start,start+num_samples)
-        plt.plot(x, sp.squared, 'b', label="raw")
+        x = np.arange(start,start+num_samples, 2)
+        plt.plot(x, sp.squared, 'b', label="squared")
         plt.plot(x, sp.signal, 'g', label="lowpass")
         plt.plot(x, sp.quantized, 'r', label="quantized")
         plt.xlabel("Samples")
-
-
         plt.title(args.r)
-
         if args.saveplot:
             plt.savefig(args.saveplot)
-
         if args.plot:
             plt.show()
 
@@ -168,6 +167,6 @@ else:
     print("RTL: Gain: {}".format(sdr.gain))
     print("RTL: Reading samples {:.2f} s".format(num_samples/2/sdr.sample_rate))
 
-    sp.initialize(num_samples//2)
+    sp.initialize(num_samples)
     while True:
         sdr.read_bytes_async(sp.callback, num_samples) # Nothing is raised when callback raises errors!

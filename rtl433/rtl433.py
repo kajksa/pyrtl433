@@ -164,8 +164,10 @@ def pack_bytes(bits_bool):
 
 class RFSignal:
     def __init__(self, num_samples):
+        if num_samples % 2 != 0:
+            raise ValueError("Not even number of samples.")
         self.num_samples = num_samples
-        self.num_bytes = 2 * self.num_samples
+        self.num_bytes = self.num_samples
 
         # TODO
         # Numerator (b) and denominator (a) polynomials of the IIR filter
@@ -179,9 +181,9 @@ class RFSignal:
         #
 
         # Squared signal
-        self.squared = np.empty(self.num_samples, dtype = np.uint16)
+        self.squared = np.empty(self.num_samples//2, dtype = np.uint16)
         # Low pass filtered signal
-        self.signal = np.empty(self.num_samples, dtype = np.uint16)
+        self.signal = np.empty(self.num_samples//2, dtype = np.uint16)
 
 
     def _square(self):
