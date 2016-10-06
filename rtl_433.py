@@ -14,6 +14,8 @@ import matplotlib.pylab as plt
 from rtl433 import RFSignal, ChuangoDemodulate, ProoveDemodulate #, OregonDemodulate
 
 
+
+
 def signal_handler(signal, frame):
     print('You pressed Ctrl+C!')
     sys.exit(0)
@@ -60,6 +62,7 @@ class SignalProcess(RFSignal):
         if self.pulse_detected:
             for demod in self.demodulators:
                 data = demod(self)
+                print("Demodulator: {}".format(demod.name))
                 demod.print()
         return
                 
@@ -92,6 +95,8 @@ parser.add_argument("-A", action="store_true", help="analyze signal")
 parser.add_argument("--dump-raw", help="dump raw data")
 parser.add_argument("--debug-pulse-detect", help="Dumb data for debugging pulse detection")
 parser.add_argument("--gain", help="RTL-SDR gain", default="auto")
+parser.add_argument("--port", help="port number", default=-1, type=int)
+
 
 
 args = parser.parse_args()
@@ -145,8 +150,20 @@ if args.r:
 
 # Realtime
 else:
-    from rtlsdr import RtlSdr
+    from rtlsdr import RtlSdr, RtlSdrTcpClient
 
+    # Monkey path to avoid print statement, can not get _keep_alive to work?
+    def _close_socket(self):
+        if self._keep_alive:
+            return
+        s = getattr(self, '_socket', None)
+        if s is None:
+            return
+        #print('client closing socket')
+        s.close()
+        self._socket = None
+    RtlSdrTcpClient._close_socket = _close_socket
+        
     freq0 = 433.92
     freq_correction = 0
     num_samples = 4*256*256*2
@@ -156,7 +173,11 @@ else:
     except:
         gain = args.gain
 
-    sdr = RtlSdr()
+    if args.port<0:
+        sdr = RtlSdr()
+    else:
+        sdr = RtlSdrTcpClient(port=args.port)
+        
     sdr.sample_rate = sample_rate
     sdr.center_freq = freq0 * 1e6
     if freq_correction!= 0:
@@ -168,5 +189,12 @@ else:
     print("RTL: Reading samples {:.2f} s".format(num_samples/2/sdr.sample_rate))
 
     sp.initialize(num_samples)
-    while True:
-        sdr.read_bytes_async(sp.callback, num_samples) # Nothing is raised when callback raises errors!
+    if args.port<0:
+        while True:
+            sdr.read_bytes_async(sp.callback, num_samples) # Nothing is raised when callback raises errors!
+    else:
+        # sdr._keep_alive = True
+        while True:
+            samples = sdr.read_bytes(num_samples)
+            samples = np.array(samples, dtype=np.uint8)
+            sp.run(samples)
