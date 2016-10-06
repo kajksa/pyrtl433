@@ -124,6 +124,8 @@ def split_packet(pulses, gaps, reset_limit):
 def cluster_analyze(L, tolerance, max_clusters = 10):
     """Simple 1D cluster analysis."""
     f = int(tolerance * 100) + 100 # 0.2 -> 120
+    if len(L)==0:
+        return [],0
     Ls = np.sort(L) # Expensive
     clusters = [0]
     current = Ls[0]
