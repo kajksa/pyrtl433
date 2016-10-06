@@ -3,13 +3,21 @@
 
 import argparse
 import sys
+import signal
 import time
+
 
 import numpy as np
 import matplotlib.pylab as plt
 
 
 from rtl433 import RFSignal, ChuangoDemodulate, ProoveDemodulate #, OregonDemodulate
+
+
+def signal_handler(signal, frame):
+    print('You pressed Ctrl+C!')
+    sys.exit(0)
+signal.signal(signal.SIGINT, signal_handler)
 
 sample_rate = 250000 # TODO: Hardcoded
 demodulators = [ChuangoDemodulate(), ProoveDemodulate()]
@@ -30,12 +38,12 @@ class SignalProcess(RFSignal):
             return False
         return True
         
-    def _muffe(self, samples):
+    def run(self, samples):
         # Dumb everything as one stream
         if self.dump_raw:
             d.tofile(self.dump_raw)
             self.dump_raw.flush()
-            
+
         self.process(samples)
         if self.analyze_signal:
             self.analyze()
@@ -54,19 +62,20 @@ class SignalProcess(RFSignal):
             for demod in self.demodulators:
                 data = demod(self)
                 demod.print()
-
-    def run(self, samples):
-        self._muffe(samples)
-
-    # from rtlsdr.helpers import limit_calls
-    # num_callbacks = 2
-    # @limit_calls(num_callbacks)
+        return
+                
     def callback(self, samples, rtl):
-        d = np.frombuffer(samples, dtype=np.uint8)
         try:
-            self._muffe(samples)
-        except:
-            rtl.close()
+            d = np.frombuffer(samples, dtype=np.uint8)
+            self.run(d)
+        except Exception as err:
+            print("Error in callback!")
+            print(err)
+            print("sys.exit(-1)")
+            #rtl.cancel_read_async()
+            #rtl.close()
+            #raise err
+            sys.exit(-1)
 
 parser = argparse.ArgumentParser()
 
@@ -115,7 +124,6 @@ if args.r:
     print("Loaded {} samples ({:2f} s @ {} Hz)".format(num_samples, num_samples/sample_rate, sample_rate))
 
     sp.initialize(num_samples)
-
     sp.run(d)
 
     if args.plot or args.saveplot:
@@ -148,23 +156,18 @@ else:
         gain = int(args.gain)
     except:
         gain = args.gain
-    sdr.gain = gain
 
     sdr = RtlSdr()
     sdr.sample_rate = sample_rate
     sdr.center_freq = freq0 * 1e6
     if freq_correction!= 0:
         sdr.freq_correction = freq_correction
-
-    print("RTL: Sample rate: {}".format(sdr.sample_rate))
+    sdr.gain = gain
+    
+    print("RTL: Sample rate: {:.2f}".format(sdr.sample_rate))
     print("RTL: Gain: {}".format(sdr.gain))
-    print("RTL: Reading samples {} s".format(num_samples/2/sdr.sample_rate))
+    print("RTL: Reading samples {:.2f} s".format(num_samples/2/sdr.sample_rate))
 
+    sp.initialize(num_samples//2)
     while True:
-        try:
-            print("RTL: Calling read_bytes_async()")
-            sdr.read_bytes_async(sp.callback, num_samples)
-        except KeyboardInterrupt:
-            print("DISCO"*10)
-            sdr.close() # cancel_read_async()
-            break
+        sdr.read_bytes_async(sp.callback, num_samples) # Nothing is raised when callback raises errors!
