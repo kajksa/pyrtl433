@@ -371,6 +371,7 @@ class Demodulate:
     
 class ChuangoDemodulate(Demodulate):
     def __init__(self):
+        self.name = "Chuango"
         self.reset_limit = 3800
         self.short_limit = 200
 
@@ -400,6 +401,7 @@ class ChuangoDemodulate(Demodulate):
 
 class ProoveDemodulate(Demodulate):
     def __init__(self):
+        self.name = "Proove"
         self.reset_limit = 2400
         self.short_limit = 100
 

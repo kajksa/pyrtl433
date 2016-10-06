@@ -13,9 +13,6 @@ import matplotlib.pylab as plt
 
 from rtl433 import RFSignal, ChuangoDemodulate, ProoveDemodulate #, OregonDemodulate
 
-
-
-
 def signal_handler(signal, frame):
     print('You pressed Ctrl+C!')
     sys.exit(0)
@@ -95,8 +92,10 @@ parser.add_argument("-A", action="store_true", help="analyze signal")
 parser.add_argument("--dump-raw", help="dump raw data")
 parser.add_argument("--debug-pulse-detect", help="Dumb data for debugging pulse detection")
 parser.add_argument("--gain", help="RTL-SDR gain", default="auto")
-parser.add_argument("--port", help="port number", default=-1, type=int)
 
+parser.add_argument("--port", help="port number", default=1235, type=int)
+parser.add_argument("--hostname", help="hostname", default="127.0.0.1")
+parser.add_argument("--client", help="TCP client", action="store_true")
 
 
 args = parser.parse_args()
@@ -173,10 +172,10 @@ else:
     except:
         gain = args.gain
 
-    if args.port<0:
+    if args.client==False:
         sdr = RtlSdr()
     else:
-        sdr = RtlSdrTcpClient(port=args.port)
+        sdr = RtlSdrTcpClient(hostname=args.hostname, port=args.port)
         
     sdr.sample_rate = sample_rate
     sdr.center_freq = freq0 * 1e6
@@ -189,7 +188,7 @@ else:
     print("RTL: Reading samples {:.2f} s".format(num_samples/2/sdr.sample_rate))
 
     sp.initialize(num_samples)
-    if args.port<0:
+    if args.client==False:
         while True:
             sdr.read_bytes_async(sp.callback, num_samples) # Nothing is raised when callback raises errors!
     else:
