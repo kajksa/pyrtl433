@@ -395,7 +395,7 @@ class ChuangoDemodulate(Demodulate):
             if len(boolbit)==25 and not boolbit[-1] and not np.all(boolbit[0]==boolbit[0:20]):
                 pdata["device_id"] = int((bytes[0] << 12) | (bytes[1] << 4) | (bytes[2] >> 4))
                 pdata["cmd_id"] = int(bytes[2] & 0x0F)
-                pdata["product"] = "Chuango"
+                pdata["product"] = self.name
             self.data.append(pdata)
         return self.data
 
@@ -430,7 +430,7 @@ class ProoveDemodulate(Demodulate):
                 pdata["state"] = "OFF" if ((bytes[3] >> 4) & 1)==1 else "ON"
                 pdata["channel"] = int((bytes[3] >> 2) & 0x03)
                 pdata["unit"] = int((bytes[3] & 0x03))
-                pdata["product"] = "Proove"
+                pdata["product"] = self.name
             self.data.append(pdata)
         return self.data
 
