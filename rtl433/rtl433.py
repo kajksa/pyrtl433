@@ -314,20 +314,9 @@ def boolbit2str(boolbit):
 # DEMODULATE
 #
 
-# Proove: PPM with fixed pulse width
-# Pulse 62 +- 3
-# Gaps 
-
-# Chuango: PWM with fixed period
-# File: chuango_basementdoor/gfile014.data
-# Guessing modulation: Pulse Width Modulation with fixed period
-# Attempting demodulation... short_limit: 267, long_limit: 398, reset_limit: 398
-
-
 # Working with nibbles
 #define HI_NIBBLE(b) (((b) >> 4) & 0x0F)
 #define LO_NIBBLE(b) ((b) & 0x0F)
-
 # https://wiki.python.org/moin/BitManipulation
 
 def manchester(bits):
@@ -366,8 +355,6 @@ class Demodulate:
     def _split_packet(self, rf):
         pulsess, gapss = split_packet(rf.pulses, rf.gaps, self.reset_limit)
         return pulsess, gapss 
-
-
     
 class ChuangoDemodulate(Demodulate):
     def __init__(self):
@@ -376,9 +363,13 @@ class ChuangoDemodulate(Demodulate):
         self.short_limit = 200
 
     def __call__(self, rf):
-        pulsess, gapss = self._split_packet(rf)
 
         self.boolbits = []
+        self.bytess = []
+        self.data = [] 
+        
+        # Pulses/gaps to bool bits
+        pulsess, gapss = self._split_packet(rf)
         for pulses,gaps in zip(pulsess, gapss):
             if len(pulses)>0:
                 # Some demodulation! Converting some series of pulses and gaps to raw bytes
@@ -386,9 +377,11 @@ class ChuangoDemodulate(Demodulate):
                 boolbit = ~boolbit # Long pulses are 1's in PWM ?
                 self.boolbits.append(boolbit)
 
-        self.bytess = [pack_bytes(b) for b in self.boolbits]
+        # Bool bits to bytes
+        for b in self.boolbits:
+            self.bytess.append(pack_bytes(b))
 
-        self.data = []
+        # Decode bytes to data
         for i, (boolbit, bytes) in enumerate(zip(self.boolbits, self.bytess)):
             pdata = {}
             # 25 bits, always ending on a short pulse, and not all device id bits equal
@@ -406,9 +399,12 @@ class ProoveDemodulate(Demodulate):
         self.short_limit = 100
 
     def __call__(self, rf):
-        pulsess, gapss = self._split_packet(rf)
-
         self.boolbits = []
+        self.bytess = []
+        self.data = [] 
+
+        # Pulses/gaps to bool bits
+        pulsess, gapss = self._split_packet(rf)
         for pulses,gaps in zip(pulsess, gapss):
             if len(pulses)>0:
                 # Some demodulation! Converting some series of pulses and gaps to raw bytes
@@ -419,9 +415,11 @@ class ProoveDemodulate(Demodulate):
                 except ValueError:
                     continue
 
-        self.bytess = [pack_bytes(b) for b in self.boolbits]
-        
-        self.data = []
+        # Bool bits to bytes
+        for b in self.boolbits:
+            self.bytess.append(pack_bytes(b))
+
+        # Decode bytes to data
         for i, (boolbit, bytes) in enumerate(zip(self.boolbits, self.bytess)):
             pdata = {}            
             if len(boolbit)==32:
@@ -439,32 +437,6 @@ class ProoveDemodulate(Demodulate):
 #     def __init__(self):
 #         self.reset_limit = 2400
 #         self.short_limit = 130
-
-#     def __call__(self, rf):
-#         pulsess, gapss = self._split_packet(rf)
-
-#         self.boolbits = []
-#         for pulses,gaps in zip(pulsess, gapss):
-#             if len(pulses)>0:
-#                 # Some demodulation! Converting some series of pulses and gaps to raw bytes
-#                 boolbit = (pulses<self.short_limit)
-#                 boolbit2 = (gaps<self.short_limit)
-#                 print("Pulse short", boolbit)
-#                 print("Gaps short", boolbit2)
-#                 try:
-#                     boolbit = manchester(boolbit)
-#                     self.boolbits.append(boolbit)
-#                 except ValueError:
-#                     continue
-
-#         self.bytess = [pack_bytes(b) for b in self.boolbits]
-        
-#         print(self.boolbits)
-        
-#         #return ldata
-
-
-
 
 if __name__ == "__main__":
 

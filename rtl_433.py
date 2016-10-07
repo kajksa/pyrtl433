@@ -1,17 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 import argparse
 import sys
 import signal
 import time
 
-
 import numpy as np
 import matplotlib.pylab as plt
 
-
-from rtl433 import RFSignal, ChuangoDemodulate, ProoveDemodulate #, OregonDemodulate
+from rtl433 import RFSignal, ChuangoDemodulate, ProoveDemodulate
 
 def signal_handler(signal, frame):
     print('You pressed Ctrl+C!')
@@ -19,23 +16,36 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 sample_rate = 250000 # TODO: Hardcoded
-demodulators = [ChuangoDemodulate(), ProoveDemodulate()]
+demodulators = [ChuangoDemodulate, ProoveDemodulate]
 
 class SignalProcess(RFSignal):
     def __init__(self):
         self.dump_raw = None
         self.analyze_signal = False
         self.demodulators = []
-        self.pulse_detect = True
         self.max_pulses = 500
 
     def initialize(self, num_samples):
         super().__init__(num_samples)
 
-    def _pulse_detect(self):
+    def pulse_detect(self):
+        #print(len(self.pulses), np.min(self.pulses), np.max(self.pulses), np.min(self.gaps), np.max(self.gaps))
+        self.pulse_detected = True
         if len(self.pulses)>self.max_pulses:
-            return False
-        return True
+            self.pulse_detected = False
+            return
+        if np.min(self.pulses)==1 and np.min(self.gaps):
+            self.pulse_detected = False
+            return
+        
+    def demodulate(self):
+        if self.pulse_detected:
+            for Demodulator in self.demodulators:
+                dm = Demodulator()
+                data = dm(self)
+                if data:
+                    print("Demodulator: {}".format(dm.name))
+                    dm.print()
         
     def run(self, samples):
         # Dumb everything as one stream
@@ -46,23 +56,9 @@ class SignalProcess(RFSignal):
         self.process(samples)
         if self.analyze_signal:
             self.analyze()
-        #
-        # PULSE DETECT ON QUANTIZED SIGNAL
-        #
-
-        self.pulse_detected = self._pulse_detect()
-        
-        #
-        # DEMODULATE BITS
-        #
-
-        if self.pulse_detected:
-            for demod in self.demodulators:
-                data = demod(self)
-                print("Demodulator: {}".format(demod.name))
-                demod.print()
-        return
-                
+        self.pulse_detect()        
+        self.demodulate()
+                    
     def callback(self, samples, rtl):
         try:
             d = np.frombuffer(samples, dtype=np.uint8)
@@ -107,8 +103,7 @@ if args.dump_raw:
     sp.dump_raw = open(args.dump_raw, "wb")
 sp.demodulators = demodulators
 
-
-# Load file recorded
+# Load recorded file
 if args.r:
     print("Loading file {}".format(args.r))
     d = np.fromfile(args.r, dtype=np.uint8)
@@ -147,11 +142,11 @@ if args.r:
         if args.plot:
             plt.show()
 
-# Realtime
+# RTL dongle/tcp client
 else:
     from rtlsdr import RtlSdr, RtlSdrTcpClient
 
-    # Monkey path to avoid print statement, can not get _keep_alive to work?
+    # Monkey patch to avoid print statement, can not get _keep_alive to work?
     def _close_socket(self):
         if self._keep_alive:
             return
