@@ -6,7 +6,7 @@ import signal
 import time
 
 import numpy as np
-import matplotlib.pylab as plt
+
 
 from rtl433 import RFSignal, ChuangoDemodulate, ProoveDemodulate
 
@@ -88,6 +88,7 @@ parser.add_argument("-A", action="store_true", help="analyze signal")
 parser.add_argument("--dump-raw", help="dump raw data")
 parser.add_argument("--debug-pulse-detect", help="Dumb data for debugging pulse detection")
 parser.add_argument("--gain", help="RTL-SDR gain", default="auto")
+parser.add_argument("--device-index", help="RTL-SDR device index", default=0, type=int)
 
 parser.add_argument("--port", help="port number", default=1235, type=int)
 parser.add_argument("--hostname", help="hostname", default="127.0.0.1")
@@ -129,6 +130,7 @@ if args.r:
     sp.run(d)
 
     if args.plot or args.saveplot:
+        import matplotlib.pylab as plt
         plt.switch_backend('Qt4Agg')
         plt.figure("data")
         x = np.arange(start,start+num_samples, 2)
@@ -168,7 +170,7 @@ else:
         gain = args.gain
 
     if args.client==False:
-        sdr = RtlSdr()
+        sdr = RtlSdr(device_index=args.device_index)
     else:
         sdr = RtlSdrTcpClient(hostname=args.hostname, port=args.port)
         
@@ -177,6 +179,8 @@ else:
     if freq_correction!= 0:
         sdr.freq_correction = freq_correction
     sdr.gain = gain
+
+    #sdr.device_index = device_index
     
     print("RTL: Sample rate: {:.2f}".format(sdr.sample_rate))
     print("RTL: Gain: {}".format(sdr.gain))
