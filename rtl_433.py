@@ -31,6 +31,9 @@ class SignalProcess(RFSignal):
     def pulse_detect(self):
         #print(len(self.pulses), np.min(self.pulses), np.max(self.pulses), np.min(self.gaps), np.max(self.gaps))
         self.pulse_detected = True
+        if len(self.pulses)==0:
+            self.pulse_detected = False
+            return            
         if len(self.pulses)>self.max_pulses:
             self.pulse_detected = False
             return
