@@ -362,6 +362,16 @@ class ChuangoDemodulate(Demodulate):
         self.reset_limit = 3800
         self.short_limit = 200
 
+        # Zeros
+        #self.short_pulse_minlen = 120
+        self.short_pulse_maxlen = 180
+
+        # Ones
+        self.long_pulse_minlen = 380
+        #self.pulse_maxlen = 160
+
+        
+        
     def __call__(self, rf):
 
         self.boolbits = []
@@ -373,9 +383,15 @@ class ChuangoDemodulate(Demodulate):
         for pulses,gaps in zip(pulsess, gapss):
             if len(pulses)>0:
                 # Some demodulation! Converting some series of pulses and gaps to raw bytes
-                boolbit = pulses<200 # More robust?
-                boolbit = ~boolbit # Long pulses are 1's in PWM ?
-                self.boolbits.append(boolbit)
+                #boolbit = pulses<200 # More robust?
+                #self.boolbits.append(boolbit)
+                boolbit = (pulses<self.short_pulse_maxlen)
+                boolbit = ~boolbit # Long pulses are 1's
+                boolbit2 = (pulses>self.long_pulse_minlen)
+                if np.all(boolbit==boolbit2):
+                    self.boolbits.append(boolbit)
+                # else:
+                #     print(boolbit, boolbit2)
 
         # Bool bits to bytes
         for b in self.boolbits:
