@@ -57,9 +57,9 @@ class SignalProcess(RFSignal):
             self.dump_raw.flush()
 
         self.process(samples)
-        if self.analyze_signal:
+        self.pulse_detect()
+        if self.analyze_signal and self.pulse_detected:
             self.analyze()
-        self.pulse_detect()        
         self.demodulate()
                     
     def callback(self, samples, rtl):
