@@ -53,7 +53,7 @@ class SignalProcess(RFSignal):
     def run(self, samples):
         # Dumb everything as one stream
         if self.dump_raw:
-            d.tofile(self.dump_raw)
+            samples.tofile(self.dump_raw)
             self.dump_raw.flush()
 
         self.process(samples)
